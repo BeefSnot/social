@@ -5,22 +5,27 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 require 'send_email.php';
+
 $servername = "localhost";
 $username = "dynastyhosting_social"; // Change this to your MySQL username
 $password = "d9Au7MmbqBJh5ucSz2kq"; // Change this to your MySQL password
 $dbname = "dynastyhosting_social";
+
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
+
 // Check connection
 if ($conn->connect_error) {
     error_log("Connection failed: " . $conn->connect_error);
     die("Connection failed: " . $conn->connect_error);
 }
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'];
     $username = $_POST['username'];
     $email = $_POST['email'];
     $password = $_POST['password'];
+
     if ($action === 'register') {
         $confirm_password = $_POST['confirm_password'];
         if ($password !== $confirm_password) {
@@ -46,62 +51,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("Location: verify.php");
                 exit();
             } else {
-                error_log("Failed to send verification email.");
-                $_SESSION['error'] = "Registration successful! Failed to send verification email.";
+                $_SESSION['error'] = "Failed to send verification email.";
                 header("Location: index.php");
-                exit;
+                exit();
             }
         } else {
-            error_log("Error: " . $sql . " - " . $conn->error);
-            $_SESSION['error'] = "Error: " . $sql . "<br>" . $conn->error;
+            $_SESSION['error'] = "Failed to register user.";
             header("Location: index.php");
-            exit;
+            exit();
         }
-        $stmt->close();
-    } elseif ($action === 'login') {
-        $sql = "SELECT * FROM users WHERE username = ? AND email = ?";
+    }
+
+    if ($action === 'login') {
+        $sql = "SELECT id, username, password FROM users WHERE username = ?";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ss", $username, $email);
+        $stmt->bind_param("s", $username);
         $stmt->execute();
         $result = $stmt->get_result();
         if ($result->num_rows > 0) {
-            $row = $result->fetch_assoc();
-            if ($row['verified'] == 0) {
-                $_SESSION['error'] = "Please verify your email address before logging in. Check your email for the verification link.";
-                header("Location: index.php");
-                exit;
-            }
-            if (password_verify($password, $row['password'])) {
-                // Store username and email in session
-                $_SESSION['username'] = $username;
-                $_SESSION['email'] = $email;
-                // Send login notification email
-                $to = $email;
-                $subject = "Login Notification";
-                $body = "You have successfully logged in to TikTok Clone.";
-                if (sendEmail($to, $subject, $body)) {
-                    // Redirect to landing page
-                    header("Location: landing.php");
-                    exit();
-                } else {
-                    error_log("Failed to send login notification email.");
-                    $_SESSION['error'] = "Login successful! Failed to send login notification email.";
-                    header("Location: index.php");
-                    exit;
-                }
+            $user = $result->fetch_assoc();
+            if (password_verify($password, $user['password'])) {
+                // Set session variables
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                // Redirect to landing page or the page the user was trying to access
+                $redirect_url = isset($_SESSION['redirect_url']) ? $_SESSION['redirect_url'] : 'landing.php';
+                unset($_SESSION['redirect_url']);
+                header("Location: " . $redirect_url);
+                exit();
             } else {
-                $_SESSION['error'] = "Invalid password!";
+                $_SESSION['error'] = "Invalid password.";
                 header("Location: index.php");
-                exit;
+                exit();
             }
         } else {
-            $_SESSION['error'] = "No user found with that username and email!";
+            $_SESSION['error'] = "No user found with that username.";
             header("Location: index.php");
-            exit;
+            exit();
         }
-        $stmt->close();
     }
 }
+
 $conn->close();
 ob_end_flush(); // End output buffering and flush output
 ?>

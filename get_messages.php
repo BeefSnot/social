@@ -1,8 +1,5 @@
 <?php
-session_start();
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+include 'session_manager.php';
 
 $servername = "localhost";
 $username = "dynastyhosting_social";
@@ -20,7 +17,10 @@ if ($conn->connect_error) {
 $sender_id = $_SESSION['user_id'];
 $receiver_id = $_GET['receiver_id'];
 
-$sql = "SELECT * FROM messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?) ORDER BY timestamp ASC";
+$sql = "SELECT m.*, u.username AS sender_name FROM messages m
+        JOIN users u ON m.sender_id = u.id
+        WHERE (m.sender_id = ? AND m.receiver_id = ?) OR (m.sender_id = ? AND m.receiver_id = ?)
+        ORDER BY m.timestamp ASC";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("iiii", $sender_id, $receiver_id, $receiver_id, $sender_id);
 $stmt->execute();

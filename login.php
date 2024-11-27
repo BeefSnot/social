@@ -36,12 +36,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
         if (password_verify($password, $row['password'])) {
-            // Store username and email in session
+            // Store user ID, username, and email in session
+            $_SESSION['user_id'] = $row['id'];
             $_SESSION['username'] = $username;
             $_SESSION['email'] = $row['email'];
 
-            // Redirect to landing page
-            header("Location: landing.php");
+            // Redirect to the page the user was trying to access
+            $redirect_url = isset($_SESSION['redirect_url']) ? $_SESSION['redirect_url'] : 'landing.php';
+            unset($_SESSION['redirect_url']);
+            header("Location: " . $redirect_url);
             exit();
         } else {
             echo "Invalid password!";

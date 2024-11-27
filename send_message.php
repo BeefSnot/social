@@ -1,8 +1,5 @@
 <?php
-session_start();
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+include 'session_manager.php';
 
 $servername = "localhost";
 $username = "dynastyhosting_social";
@@ -21,13 +18,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $sender_id = $_SESSION['user_id'];
     $receiver_id = $_POST['receiver_id'];
     $message = $_POST['message'];
+    $timestamp = date('Y-m-d H:i:s');
 
-    $sql = "INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)";
+    $sql = "INSERT INTO messages (sender_id, receiver_id, message, timestamp) VALUES (?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("iis", $sender_id, $receiver_id, $message);
+    $stmt->bind_param("iiss", $sender_id, $receiver_id, $message, $timestamp);
 
     if ($stmt->execute()) {
-        echo "Message sent successfully!";
+        echo "Message sent successfully";
     } else {
         echo "Error: " . $stmt->error;
     }

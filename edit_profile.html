@@ -1,3 +1,5 @@
+<?php include 'session_manager.php'; ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -91,7 +93,7 @@
             xhr.onload = function() {
                 if (xhr.status === 200) {
                     alert('Profile updated successfully!');
-                    window.location.href = 'account_management.html';
+                    window.location.href = 'account_management.php';
                 } else {
                     alert('An error occurred while updating your profile.');
                 }

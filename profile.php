@@ -1,8 +1,5 @@
 <?php
-session_start();
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+include 'session_manager.php';
 
 $servername = "localhost";
 $username = "dynastyhosting_social";
@@ -143,6 +140,13 @@ $stmt->close();
             background: #e9ecef;
             margin-right: 20%;
         }
+        .message .sender {
+            font-weight: bold;
+        }
+        .message .timestamp {
+            font-size: 0.8em;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -224,7 +228,11 @@ $stmt->close();
                         const messageElement = document.createElement('div');
                         messageElement.classList.add('message');
                         messageElement.classList.add(message.sender_id == <?php echo $current_user_id; ?> ? 'sent' : 'received');
-                        messageElement.textContent = message.message;
+                        messageElement.innerHTML = `
+                            <div class="sender">${message.sender_name}</div>
+                            <div class="timestamp">${new Date(message.timestamp).toLocaleString()}</div>
+                            <div class="content">${message.message}</div>
+                        `;
                         messagesContainer.appendChild(messageElement);
                     });
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;

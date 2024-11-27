@@ -1,8 +1,5 @@
 <?php
-session_start();
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+include 'session_manager.php';
 
 $servername = "localhost";
 $username = "dynastyhosting_social"; // Change this to your MySQL username
@@ -15,13 +12,6 @@ $conn = new mysqli($servername, $username, $password, $dbname);
 // Check connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
-}
-
-// Redirect to login page if user is not logged in
-if (!isset($_SESSION['username'])) {
-    $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-    header("Location: login.php");
-    exit();
 }
 
 $user_info = [];
@@ -158,7 +148,7 @@ $conn->close();
     <script>
         function editProfile() {
             // Redirect to edit profile page
-            window.location.href = 'edit_profile.html';
+            window.location.href = 'edit_profile.php';
         }
 
         function goHome() {

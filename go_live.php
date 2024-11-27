@@ -1,12 +1,9 @@
 <?php
-session_start();
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+include 'session_manager.php';
 
 $servername = "localhost";
-$username = "dynastyhosting_social"; // Change this to your MySQL username
-$password = "d9Au7MmbqBJh5ucSz2kq"; // Change this to your MySQL password
+$username = "dynastyhosting_social";
+$password = "d9Au7MmbqBJh5ucSz2kq";
 $dbname = "dynastyhosting_social";
 
 // Create connection
@@ -17,8 +14,29 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-$sql = "SELECT * FROM videos ORDER BY created_at DESC";
-$result = $conn->query($sql);
+$user_id = $_SESSION['user_id'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'];
+    if ($action === 'start') {
+        $stream_key = bin2hex(random_bytes(16));
+        $sql = "INSERT INTO live_streams (user_id, stream_key, is_live) VALUES (?, ?, TRUE)
+                ON DUPLICATE KEY UPDATE stream_key = VALUES(stream_key), is_live = TRUE";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("is", $user_id, $stream_key);
+        $stmt->execute();
+        $stmt->close();
+        echo json_encode(['stream_key' => $stream_key]);
+        exit();
+    } elseif ($action === 'stop') {
+        $sql = "UPDATE live_streams SET is_live = FALSE WHERE user_id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $stmt->close();
+        exit();
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -26,7 +44,7 @@ $result = $conn->query($sql);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KELP Social - For You</title>
+    <title>Go Live</title>
     <style>
         body, html {
             height: 100%;
@@ -38,50 +56,24 @@ $result = $conn->query($sql);
             background: #000;
             color: #fff;
         }
-        .header {
-            width: 100%;
-            padding: 20px;
-            background: #333;
+        .container {
             text-align: center;
-        }
-        .header h1 {
-            margin: 0;
-        }
-        .profile {
-            text-align: right;
-            padding: 10px;
-            background: #333;
             width: 100%;
-            box-sizing: border-box;
+            max-width: 800px;
+            margin: 20px;
         }
-        .profile p {
-            margin: 0;
-        }
-        .video-feed {
-            flex: 1;
-            width: 100%;
-            max-width: 600px;
-            overflow-y: auto;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        .video {
-            background: #222;
+        .video-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
             margin-bottom: 20px;
-            padding: 10px;
+        }
+        video {
+            width: 45%;
+            margin: 0 10px;
             border-radius: 10px;
         }
-        .video video {
-            width: 100%;
-            border-radius: 10px;
-        }
-        .footer {
-            width: 100%;
-            padding: 20px;
-            background: #333;
-            text-align: center;
-        }
-        .footer button {
+        .controls button {
             padding: 10px 20px;
             margin: 0 10px;
             background: #0073e6;
@@ -90,127 +82,189 @@ $result = $conn->query($sql);
             color: #fff;
             cursor: pointer;
         }
-        .footer button:hover {
+        .controls button:hover {
             background: #005bb5;
         }
-        .like-comment {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
+        .chat-container {
+            margin-top: 20px;
+            width: 100%;
         }
-        .like-comment button {
+        .chat-messages {
+            height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            border: 1px solid #333;
+            padding: 10px;
+            border-radius: 10px;
+            background: #222;
+        }
+        .chat-messages p {
+            margin: 5px 0;
+        }
+        .chat-container input {
+            width: 80%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .chat-container button {
+            padding: 10px;
             background: #0073e6;
             border: none;
             border-radius: 5px;
             color: #fff;
             cursor: pointer;
-            padding: 5px 10px;
         }
-        .like-comment button:hover {
+        .chat-container button:hover {
             background: #005bb5;
-        }
-        .comments {
-            margin-top: 10px;
-        }
-        .comments p {
-            margin: 5px 0;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>For You</h1>
+    <div class="container">
+        <h1>Go Live</h1>
+        <div class="video-container">
+            <video id="localVideo" autoplay muted></video>
+            <video id="remoteVideo" autoplay></video>
+        </div>
+        <div class="controls">
+            <button id="startButton">Start Live</button>
+            <button id="stopButton">Stop Live</button>
+        </div>
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages"></div>
+            <input type="text" id="chatInput" placeholder="Type a message">
+            <button onclick="sendMessage()">Send</button>
+        </div>
     </div>
-    <div class="profile">
-        <?php if (isset($_SESSION['username'])): ?>
-            <p>Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?>!</p>
-            <p>Email: <?php echo htmlspecialchars($_SESSION['email']); ?></p>
-        <?php else: ?>
-            <p><a href="index.html">Login</a></p>
-        <?php endif; ?>
-    </div>
-    <div class="video-feed" id="video-feed">
-        <?php while($row = $result->fetch_assoc()): ?>
-            <div class="video">
-                <video controls>
-                    <source src="<?php echo htmlspecialchars($row['file_path']); ?>" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
-                <p><?php echo htmlspecialchars($row['title']); ?></p>
-                <p><?php echo htmlspecialchars($row['description']); ?></p>
-                <div class="like-comment">
-                    <button onclick="likeVideo(<?php echo $row['id']; ?>)">Like</button>
-                    <button onclick="showCommentBox(<?php echo $row['id']; ?>)">Comment</button>
-                </div>
-                <div class="comments" id="comments-<?php echo $row['id']; ?>">
-                    <!-- Placeholder for comments -->
-                </div>
-                <div class="form-group" id="comment-box-<?php echo $row['id']; ?>" style="display: none;">
-                    <input type="text" id="comment-input-<?php echo $row['id']; ?>" placeholder="Add a comment">
-                    <button onclick="postComment(<?php echo $row['id']; ?>)">Post</button>
-                </div>
-            </div>
-        <?php endwhile; ?>
-    </div>
-    <div class="footer">
-        <button onclick="goLive()">Go Live</button>
-        <button onclick="uploadVideo()">Upload Video</button>
-        <button onclick="manageAccount()">Account Management</button>
-    </div>
-
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
-        function goLive() {
-            // Redirect to go live page
-            window.location.href = 'go_live.html';
-        }
+        const socket = io('http://your.server.ip.address:3000');
 
-        function uploadVideo() {
-            // Redirect to upload video page
-            window.location.href = 'upload_video.html';
-        }
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
 
-        function manageAccount() {
-            // Redirect to account management page
-            window.location.href = 'account_management.html';
-        }
+        let localStream;
+        let peerConnection;
+        let streamKey;
 
-        function likeVideo(videoId) {
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'like_video.php', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    alert('Video liked!');
-                } else {
-                    alert('An error occurred while liking the video.');
+        const config = {
+            iceServers: [
+                {
+                    urls: 'stun:stun.l.google.com:19302'
                 }
-            };
-            xhr.send(`video_id=${videoId}`);
+            ]
+        };
+
+        startButton.addEventListener('click', startLive);
+        stopButton.addEventListener('click', stopLive);
+
+        async function startLive() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localVideo.srcObject = localStream;
+
+                peerConnection = new RTCPeerConnection(config);
+                peerConnection.addStream(localStream);
+
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit('candidate', event.candidate);
+                    }
+                };
+
+                peerConnection.onaddstream = (event) => {
+                    remoteVideo.srcObject = event.stream;
+                };
+
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                socket.emit('offer', offer);
+
+                const response = await fetch('go_live.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=start'
+                });
+                const data = await response.json();
+                streamKey = data.stream_key;
+            } catch (error) {
+                console.error('Error accessing media devices.', error);
+            }
         }
 
-        function showCommentBox(videoId) {
-            const commentBox = document.getElementById(`comment-box-${videoId}`);
-            commentBox.style.display = 'block';
+        async function stopLive() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localVideo.srcObject = null;
+                remoteVideo.srcObject = null;
+                peerConnection.close();
+                peerConnection = null;
+
+                await fetch('go_live.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=stop'
+                });
+            }
         }
 
-        function postComment(videoId) {
-            const commentInput = document.getElementById(`comment-input-${videoId}`);
-            const comment = commentInput.value;
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'post_comment.php', true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    const commentsDiv = document.getElementById(`comments-${videoId}`);
-                    const newComment = document.createElement('p');
-                    newComment.textContent = `${xhr.responseText}: ${comment}`;
-                    commentsDiv.appendChild(newComment);
-                    commentInput.value = '';
-                } else {
-                    alert('An error occurred while posting the comment.');
-                }
-            };
-            xhr.send(`video_id=${videoId}&comment=${encodeURIComponent(comment)}`);
+        socket.on('offer', async (offer) => {
+            if (!peerConnection) {
+                peerConnection = new RTCPeerConnection(config);
+                peerConnection.addStream(localStream);
+
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit('candidate', event.candidate);
+                    }
+                };
+
+                peerConnection.onaddstream = (event) => {
+                    remoteVideo.srcObject = event.stream;
+                };
+            }
+
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            socket.emit('answer', answer);
+        });
+
+        socket.on('answer', (answer) => {
+            peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        });
+
+        socket.on('candidate', (candidate) => {
+            peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        });
+
+        socket.on('message', (data) => {
+            const messageElement = document.createElement('p');
+            messageElement.textContent = `${data.username}: ${data.message}`;
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+
+        function sendMessage() {
+            const message = chatInput.value;
+            if (message) {
+                const data = {
+                    username: '<?php echo $_SESSION['username']; ?>', // Use the actual username from the session
+                    message: message
+                };
+                socket.emit('message', data);
+                chatInput.value = '';
+            }
         }
     </script>
 </body>
