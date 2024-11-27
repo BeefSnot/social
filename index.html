@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KELP Social</title>
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .video-background {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            z-index: -1;
+        }
+
+        .container {
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Adjust transparency */
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+        }
+
+        .logo {
+            margin-bottom: 20px;
+        }
+
+        .logo img {
+            width: 100px;
+        }
+
+        .welcome-text {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .button-group button {
+            padding: 10px 20px;
+            background-color: #0073e6;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .button-group button:hover {
+            background-color: #005bb5;
+        }
+    </style>
+</head>
+
+<body>
+    <video autoplay muted loop class="video-background">
+        <source src="uploads/background-video.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    <div class="container">
+        <div class="logo">
+            <img src="logo.png" alt="Logo">
+        </div>
+        <div class="welcome-text">
+            Welcome to KELP Social!
+        </div>
+        <div class="button-group">
+            <button onclick="showLogin()">Login</button>
+            <button onclick="showRegister()">Register</button>
+        </div>
+    </div>
+
+    <script>
+        function showLogin() {
+            window.location.href = 'login.php';
+        }
+
+        function showRegister() {
+            window.location.href = 'register.php';
+        }
+    </script>
+</body>
+
+</html>

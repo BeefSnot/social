@@ -1,0 +1,30 @@
+# Deny direct access to auth.php and send_email.php
+<Files "auth.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+<Files "send_email.php">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Enable URL rewriting
+RewriteEngine On
+
+# Redirect all requests to index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [L,QSA]
+
+# Allow access to verify.php
+<Files "verify.php">
+    Order Allow,Deny
+    Allow from all
+</Files>
+
+# Allow access to landing.php
+<Files "landing.php">
+    Order Allow,Deny
+    Allow from all
+</Files>
