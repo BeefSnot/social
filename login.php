@@ -1,28 +1,63 @@
 <?php
-include 'session_manager.php';
-include 'auth.php';
+session_start();
+ob_start(); // Start output buffering
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+$servername = "localhost";
+$username = "dynastyhosting_social"; // Change this to your MySQL username
+$password = "d9Au7MmbqBJh5ucSz2kq"; // Change this to your MySQL password
+$dbname = "dynastyhosting_social";
+
+// Create connection
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = isset($_POST['username']) ? $_POST['username'] : '';
-    $password = isset($_POST['password']) ? $_POST['password'] : '';
+    $username = $_POST['username'];
+    $password = $_POST['password'];
 
-    // Authenticate user
-    $user = authenticate($username, $password);
+    $sql = "SELECT * FROM users WHERE username = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-    if ($user) {
-        // Store user ID, username, and email in session
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        if ($row['verified'] == 0) {
+            echo "Please verify your email address before logging in. Check your email for the verification link.";
+            exit();
+        }
+        if (password_verify($password, $row['password'])) {
+            // Store user ID, username, and email in session
+            $_SESSION['user_id'] = $row['id'];
+            $_SESSION['username'] = $username;
+            $_SESSION['email'] = $row['email'];
 
-        // Redirect to the page the user was trying to access
-        $redirect_url = isset($_SESSION['redirect_url']) ? $_SESSION['redirect_url'] : 'landing.php';
-        unset($_SESSION['redirect_url']);
-        header("Location: " . $redirect_url);
-        exit();
+            // Redirect to the page the user was trying to access
+            $redirect_url = isset($_SESSION['redirect_url']) ? $_SESSION['redirect_url'] : 'landing.php';
+            unset($_SESSION['redirect_url']);
+            header("Location: " . $redirect_url);
+            exit();
+        } else {
+            echo "Invalid password!";
+        }
     } else {
-        echo "Invalid username or password!";
+        echo "No user found with that username!";
     }
+
+    $stmt->close();
 }
+
+$conn->close();
+ob_end_flush(); // End output buffering and flush output
 ?>
 
 <!DOCTYPE html>
