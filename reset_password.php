@@ -39,9 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_password'])) {
 
         if ($result->num_rows > 0) {
             $row = $result->fetch_assoc();
-            $sql_update = "UPDATE users SET password = ?, verification_code = NULL, verification_expiration = NULL WHERE verification_code = ?";
+            $sql_update = "UPDATE users SET password = ?, verification_code = NULL, verification_expiration = NULL WHERE id = ?";
             $stmt_update = $conn->prepare($sql_update);
-            $stmt_update->bind_param("ss", $hashed_password, $verification_code);
+            $stmt_update->bind_param("ssi", $hashed_password, $verification_code, $row['id']);
             if ($stmt_update->execute()) {
                 $reset_successful = true;
                 $message = "Password reset successful!";
