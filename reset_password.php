@@ -23,11 +23,13 @@ $reset_successful = false;
 $message = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_password'])) {
-    $verification_code = $_POST['verification_code'];
+    $verification_code = isset($_POST['verification_code']) ? $_POST['verification_code'] : '';
     $new_password = $_POST['new_password'];
     $confirm_password = $_POST['confirm_password'];
 
-    if ($new_password !== $confirm_password) {
+    if (empty($verification_code)) {
+        $message = "Verification code is required.";
+    } elseif ($new_password !== $confirm_password) {
         $message = "Passwords do not match!";
     } else {
         $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
