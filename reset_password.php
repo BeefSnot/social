@@ -32,6 +32,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_password'])) {
     } elseif ($new_password !== $confirm_password) {
         $message = "Passwords do not match!";
     } else {
+        // Debugging statement
+        error_log("Verification Code: " . $verification_code);
+
         $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
         $sql = "SELECT * FROM users WHERE verification_code = ? AND verification_expiration > NOW()";
         $stmt = $conn->prepare($sql);
