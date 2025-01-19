@@ -35,6 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_password'])) {
         $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
         $sql = "SELECT * FROM users WHERE verification_code = ? AND verification_expiration > NOW()";
         $stmt = $conn->prepare($sql);
+        if ($stmt === false) {
+            die("Prepare failed: " . $conn->error);
+        }
         $stmt->bind_param("s", $verification_code);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -43,6 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_password'])) {
             $row = $result->fetch_assoc();
             $sql_update = "UPDATE users SET password = ?, verification_code = NULL, verification_expiration = NULL WHERE id = ?";
             $stmt_update = $conn->prepare($sql_update);
+            if ($stmt_update === false) {
+                die("Prepare failed: " . $conn->error);
+            }
             $stmt_update->bind_param("si", $hashed_password, $row['id']);
             if ($stmt_update->execute()) {
                 $reset_successful = true;
