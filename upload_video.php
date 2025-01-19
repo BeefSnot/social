@@ -2,21 +2,12 @@
 include 'session_manager.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Debugging: Check if form data is received
-    error_log("POST data: " . print_r($_POST, true));
-    error_log("FILES data: " . print_r($_FILES, true));
-
-    // Validate form data
-    if (empty($_FILES['video'])) {
-        die("Video file is missing.");
-    }
-
     $user_id = $_SESSION['user_id'];
     $description = isset($_POST['description']) ? $_POST['description'] : '';
     $video = $_FILES['video'];
 
     // WebRTC server details
-    $webrtc_server = 'http://192.99.9.164:3000/upload';
+    $webrtc_server = 'http://99.148.48.236:3000/upload';
 
     // Use cURL to send the video file to the WebRTC server
     $ch = curl_init();
@@ -30,19 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curl_error = curl_error($ch);
     curl_close($ch);
 
-    // Debugging: Log cURL response and error
-    error_log("cURL response: " . $response);
-    error_log("cURL error: " . $curl_error);
-    error_log("HTTP code: " . $http_code);
-
     if ($http_code != 200) {
-        die("Failed to upload video to WebRTC server. HTTP code: " . $http_code . ". cURL error: " . $curl_error);
+        die("Failed to upload video to WebRTC server.");
     }
 
-    // Assuming the WebRTC server returns the path to the uploaded file
     $response_data = json_decode($response, true);
     if (!isset($response_data['file_path'])) {
         die("Invalid response from WebRTC server.");
